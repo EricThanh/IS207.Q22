@@ -3,12 +3,11 @@ import { Link, Route, Routes } from "react-router-dom";
 import Home from "./pages/Home";
 import ProductDetail from "./pages/ProductDetail";
 import "./App.css";
+import Cart from "./pages/Cart";
 
 const { Header, Content } = Layout;
 
-function Cart() {
-  return <div className="app__page">Cart - Giỏ hàng</div>;
-}
+
 
 export default function App() {
   return (

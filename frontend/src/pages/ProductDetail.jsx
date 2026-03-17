@@ -3,6 +3,7 @@ import { useParams, Link } from "react-router-dom";
 import { Button, Card, Typography, message, Space } from "antd";
 import { axiosClient } from "../api/axiosClient";
 import "./ProductDetail.css";
+import { useCart } from "../store/CartContext";
 
 const { Title, Text, Paragraph } = Typography;
 
@@ -10,6 +11,7 @@ export default function ProductDetail() {
     const { id } = useParams();
     const [p, setP] = useState(null);
     const [loading, setLoading] = useState(true);
+    const { addItem } = useCart();
 
     useEffect(() => {
         setLoading(true);
@@ -64,7 +66,10 @@ export default function ProductDetail() {
                         <Space wrap>
                             <Button
                                 type="primary"
-                                onClick={() => message.success("Đã thêm vào giỏ (bước sau sẽ làm giỏ thật)")}
+                                onClick={() => {
+                                    addItem(p, 1);
+                                    message.success("Đã thêm vào giỏ");
+                                }}
                             >
                                 Thêm vào giỏ
                             </Button>
