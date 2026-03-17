@@ -1,0 +1,56 @@
+.home {
+}
+
+.home__title {
+  margin-top: 0;
+}
+
+.home__filters {
+  margin-bottom: 16px;
+}
+
+.home__select {
+  width: 220px;
+}
+
+.home__search {
+  width: 320px;
+}
+
+.home__loading {
+  margin-bottom: 12px;
+}
+
+.home__cardLink {
+  text-decoration: none;
+}
+
+.home__card {
+  cursor: pointer;
+}
+
+.home__img {
+  height: 180px;
+  object-fit: cover;
+  width: 100%;
+}
+
+.home__productName {
+  margin-top: 0;
+  margin-bottom: 8px;
+}
+
+.home__descWrap {
+  margin-top: 8px;
+}
+
+.home__desc {
+  display: block;
+}
+.home__img {
+  width: 100%;
+  aspect-ratio: 3 / 2;     /* hoặc 4/3, 16/9 tùy bạn */
+  object-fit: contain;
+  background: rgb(228, 136, 190);
+  display: block;
+}

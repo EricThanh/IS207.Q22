@@ -1,0 +1,25 @@
+.app {
+  min-height: 100vh;
+  
+}
+
+.app__header {
+  padding: 0;
+}
+
+.app__menu {
+  line-height: 64px; 
+  background: pink;
+  /* khớp chiều cao Header mặc định của AntD */
+}
+
+.app__content {
+  padding: 24px;
+}
+
+.app__page {
+  padding: 8px 0;
+}
+.app__menu .ant-menu-item a {
+  color: #174087 !important;
+}
