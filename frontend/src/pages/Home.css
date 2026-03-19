@@ -51,6 +51,6 @@
   width: 100%;
   aspect-ratio: 3 / 2;     /* hoặc 4/3, 16/9 tùy bạn */
   object-fit: contain;
-  background: rgb(228, 136, 190);
+  background: rgb(220, 191, 221);
   display: block;
 }

@@ -1,0 +1,22 @@
+.auth {
+  max-width: 420px;
+  margin: 0 auto;
+  padding: 12px 0;
+  
+}
+
+.auth__card {
+  width: 100%;
+  
+}
+
+.auth__title {
+  margin-top: 0;
+  margin-bottom: 12px;
+  
+}
+
+.auth__footer {
+  margin-top: 12px;
+ 
+}
