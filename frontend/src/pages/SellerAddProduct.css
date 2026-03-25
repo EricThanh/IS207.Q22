@@ -1,0 +1,13 @@
+.seller {
+  max-width: 620px;
+  margin: 0 auto;
+  padding: 12px 0;
+}
+
+.seller__title {
+  margin-top: 0;
+}
+
+.seller__card {
+  width: 100%;
+}

@@ -2,6 +2,8 @@ import { Button, Card, InputNumber, Popconfirm, Table, Typography, message } fro
 import { Link } from "react-router-dom";
 import { useCart } from "../store/CartContext";
 import "./Cart.css";
+import { useState } from "react";
+import CheckoutQrModal from "./CheckoutQrModal";
 
 const { Title, Text } = Typography;
 
@@ -9,8 +11,26 @@ function formatVnd(n) {
     return Number(n || 0).toLocaleString("vi-VN") + " đ";
 }
 
+function buildVietQrImageUrl({ bankId, accountNo, amount, addInfo, accountName }) {
+    const base = `https://img.vietqr.io/image/${bankId}-${accountNo}-compact2.png`;
+    const params = new URLSearchParams();
+    if (amount) params.set("amount", String(amount));
+    if (addInfo) params.set("addInfo", addInfo);
+    if (accountName) params.set("accountName", accountName);
+    return `${base}?${params.toString()}`;
+}
+
+const BANK_ID = "ICB";
+const ACCOUNT_NO = "106874813976";
+const ACCOUNT_NAME = "NGUYEN MINH THANH";
+
 export default function Cart() {
     const { items, totalPrice, updateQty, removeItem, clearCart } = useCart();
+
+    // ✅ Hooks phải nằm trong component
+    const [qrOpen, setQrOpen] = useState(false);
+    const [qrUrl, setQrUrl] = useState("");
+    const [qrInfo, setQrInfo] = useState("");
 
     const columns = [
         {
@@ -70,7 +90,7 @@ export default function Cart() {
                         message.success("Đã xóa");
                     }}
                 >
-                    <Button danger> Xóa </Button>
+                    <Button danger>Xóa</Button>
                 </Popconfirm>
             ),
         },
@@ -112,12 +132,38 @@ export default function Cart() {
                             <Button disabled={items.length === 0}>Xóa hết</Button>
                         </Popconfirm>
 
-                        <Button type="primary" disabled={items.length === 0}>
+                        <Button
+                            type="primary"
+                            disabled={items.length === 0}
+                            onClick={() => {
+                                const addInfo = `FLOWER-${Date.now()}`;
+                                const url = buildVietQrImageUrl({
+                                    bankId: BANK_ID,
+                                    accountNo: ACCOUNT_NO,
+                                    amount: totalPrice,
+                                    addInfo,
+                                    accountName: ACCOUNT_NAME,
+                                });
+
+                                setQrInfo(addInfo);
+                                setQrUrl(url);
+                                setQrOpen(true);
+                            }}
+                        >
                             Thanh toán
                         </Button>
                     </div>
                 </div>
             </Card>
+
+
+            <CheckoutQrModal
+                open={qrOpen}
+                onClose={() => setQrOpen(false)}
+                qrUrl={qrUrl}
+                amount={totalPrice}
+                addInfo={qrInfo}
+            />
         </div>
     );
 }

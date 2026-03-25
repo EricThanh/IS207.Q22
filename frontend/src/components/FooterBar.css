@@ -1,0 +1,68 @@
+.footerbar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 54px;
+  background: pink; 
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.08);
+}
+
+.footerbar__inner {
+  width: 100%;
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 0 14px;
+  display: flex;
+  justify-content: center;
+  gap: 18px;
+}
+
+.footerbar__item {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #fff;
+  text-decoration: none;
+  font-weight: 600;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.12);
+  transition: transform 0.08s ease, background 0.12s ease;
+}
+
+.footerbar__item:hover {
+  background: rgba(255, 255, 255, 0.2);
+  transform: translateY(-1px);
+}
+
+.footerbar__icon {
+  font-size: 16px;
+  line-height: 1;
+}
+
+.footerbar__text {
+  font-size: 14px;
+  white-space: nowrap;
+}
+
+.footerbar__hotline {
+  background: rgba(255, 255, 255, 0.18);
+}
+
+/* Mobile: chỉ hiện icon + rút gọn text */
+@media (max-width: 560px) {
+  .footerbar__text {
+    display: none;
+  }
+  .footerbar__inner {
+    justify-content: space-around;
+    gap: 10px;
+  }
+  .footerbar__item {
+    padding: 10px 14px;
+  }
+}

@@ -79,6 +79,12 @@ function require_auth($JWT_SECRET)
     if (!$ok) fail("Invalid/expired token", 401);
     return $payload;
 }
+function require_seller($JWT_SECRET)
+{
+    $payload = require_auth($JWT_SECRET);
+    if (($payload["role"] ?? "") !== "seller") fail("Forbidden: seller only", 403);
+    return $payload; // có uid
+}
 
 try {
     // GET /
@@ -219,6 +225,78 @@ try {
         if (!$u) fail("User not found", 404);
 
         ok($u);
+    }
+    if ($method === "POST" && $path === "/api/seller/products") {
+        $payload = require_seller($JWT_SECRET);
+        $sellerId = intval($payload["uid"]);
+
+        $body = read_json_body();
+
+        $categoryId  = intval($body["category_id"] ?? 0);
+        $name        = trim($body["name"] ?? "");
+        $slug        = trim($body["slug"] ?? "");
+        $price       = intval($body["price"] ?? 0);
+        $stock       = intval($body["stock"] ?? 0);
+        $imageUrl    = trim($body["image_url"] ?? "");
+        $description = trim($body["description"] ?? "");
+
+        if ($categoryId <= 0) fail("category_id không hợp lệ");
+        if ($name === "" || $slug === "") fail("Thiếu name/slug");
+        if ($price <= 0) fail("price phải > 0");
+        if ($stock < 0) fail("stock không hợp lệ");
+
+        // check slug unique
+        $stmt = db()->prepare("SELECT id FROM products WHERE slug = :slug LIMIT 1");
+        $stmt->execute([":slug" => $slug]);
+        if ($stmt->fetch()) fail("Slug đã tồn tại");
+
+        $stmt = db()->prepare("
+        INSERT INTO products (seller_id, category_id, name, slug, price, stock, image_url, description, status)
+        VALUES (:seller_id, :category_id, :name, :slug, :price, :stock, :image_url, :description, 1)
+    ");
+        $stmt->execute([
+            ":seller_id" => $sellerId,
+            ":category_id" => $categoryId,
+            ":name" => $name,
+            ":slug" => $slug,
+            ":price" => $price,
+            ":stock" => $stock,
+            ":image_url" => $imageUrl,
+            ":description" => $description,
+        ]);
+
+        ok(["message" => "Tạo sản phẩm thành công", "id" => intval(db()->lastInsertId())]);
+    }
+    // POST /api/seller/upload (multipart/form-data, field name: image)
+    if ($method === "POST" && $path === "/api/seller/upload") {
+        $payload = require_auth($JWT_SECRET);
+        if (($payload["role"] ?? "") !== "seller") fail("Forbidden: seller only", 403);
+
+        if (!isset($_FILES["image"])) fail("Missing file: image", 400);
+
+        $file = $_FILES["image"];
+        if ($file["error"] !== UPLOAD_ERR_OK) fail("Upload error", 400);
+
+        // validate extension
+        $ext = strtolower(pathinfo($file["name"], PATHINFO_EXTENSION));
+        $allowed = ["jpg", "jpeg", "png", "webp"];
+        if (!in_array($ext, $allowed, true)) fail("Only jpg/jpeg/png/webp allowed", 400);
+
+        // (tuỳ chọn) giới hạn dung lượng, ví dụ 3MB
+        if ($file["size"] > 3 * 1024 * 1024) fail("File too large (max 3MB)", 400);
+
+        $uploadDir = __DIR__ . "/uploads";
+        if (!is_dir($uploadDir)) mkdir($uploadDir, 0777, true);
+
+        $newName = "p_" . time() . "_" . bin2hex(random_bytes(6)) . "." . $ext;
+        $dest = $uploadDir . "/" . $newName;
+
+        if (!move_uploaded_file($file["tmp_name"], $dest)) fail("Failed to save file", 500);
+
+        // trả về URL để lưu vào DB
+        $url = "http://localhost/flower-shop-api/public/uploads/" . $newName;
+
+        ok(["image_url" => $url]);
     }
 
     fail("Not found: " . $path, 404);

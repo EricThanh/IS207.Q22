@@ -49,8 +49,23 @@
 }
 .home__img {
   width: 100%;
-  aspect-ratio: 3 / 2;     /* hoặc 4/3, 16/9 tùy bạn */
+  aspect-ratio: 3 / 2;     
   object-fit: contain;
   background: rgb(220, 191, 221);
   display: block;
+}
+.home__carousel {
+  margin-bottom: 16px;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.home__slide {
+  height: 300px; 
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  background: rgb(206, 162, 192);
+  color: white;
+  font-size: 28px;
 }

@@ -7,6 +7,9 @@ import Login from "./pages/Login";
 import Register from "./pages/Register";
 import { useAuth } from "./store/AuthContext";
 import "./App.css";
+import RequireRole from "./routes/RequireRole";
+import SellerAddProduct from "./pages/SellerAddProduct";
+import FooterBar from "./components/FooterBar";
 
 const { Header, Content } = Layout;
 
@@ -35,6 +38,11 @@ export default function App() {
               <Menu.Item key="register"><Link to="/register">Đăng ký</Link></Menu.Item>
             </>
           )}
+          {isLoggedIn && user?.role === "seller" && (
+            <Menu.Item key="seller">
+              <Link to="/seller/products/new">Kênh người bán</Link>
+            </Menu.Item>
+          )}
         </Menu>
       </Header>
 
@@ -45,8 +53,17 @@ export default function App() {
           <Route path="/cart" element={<Cart />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route
+            path="/seller/products/new"
+            element={
+              <RequireRole role="seller">
+                <SellerAddProduct />
+              </RequireRole>
+            }
+          />
         </Routes>
       </Content>
+      <FooterBar />
     </Layout>
   );
 }

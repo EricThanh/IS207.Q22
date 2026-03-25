@@ -5,11 +5,15 @@
 
 .app__header {
   padding: 0;
+  
 }
 
 .app__menu {
   line-height: 64px; 
   background: pink;
+  display: flex;
+  justify-content: center;
+  
  
 }
 
@@ -38,4 +42,8 @@
 }
 .menu__logout{
   color: #174087 !important;
+}
+.app__content {
+  padding: 24px;
+  padding-bottom: 80px; 
 }

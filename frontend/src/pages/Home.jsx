@@ -4,6 +4,8 @@ import { Link } from "react-router-dom";
 import { catalogApi } from "../api/catalogApi";
 import "./Home.css";
 import hoaHongImg from "../images/hoahong.png";
+import React from 'react';
+import { Carousel } from 'antd';
 const { Title, Text } = Typography;
 
 export default function Home() {
@@ -87,6 +89,20 @@ export default function Home() {
                     <Spin /> <Text type="secondary">Đang tải sản phẩm...</Text>
                 </div>
             )}
+            <Carousel autoplay className="home__carousel" arrows infinite={false}>
+                <div className="home__slide">
+                    <h3>1</h3>
+                </div>
+                <div className="home__slide">
+                    <h3>2</h3>
+                </div>
+                <div className="home__slide">
+                    <h3>3</h3>
+                </div>
+                <div className="home__slide">
+                    <h3>4</h3>
+                </div>
+            </Carousel>
 
             <Row gutter={[16, 16]}>
                 {products.map((p) => (
