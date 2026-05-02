@@ -10,6 +10,7 @@ import "./App.css";
 import RequireRole from "./routes/RequireRole";
 import SellerAddProduct from "./pages/SellerAddProduct";
 import FooterBar from "./components/FooterBar";
+import BuyerOrders from "./pages/BuyerOrders";
 
 const { Header, Content } = Layout;
 
@@ -22,6 +23,9 @@ export default function App() {
         <Menu className="app__menu" theme="dark" mode="horizontal" selectable={false}>
           <Menu.Item key="home"><Link to="/">Trang chủ</Link></Menu.Item>
           <Menu.Item key="cart"><Link to="/cart">Giỏ hàng</Link></Menu.Item>
+          {isLoggedIn && user?.role === "buyer" && (
+            <Menu.Item key="orders"><Link to="/my-orders">Đơn hàng của tôi</Link></Menu.Item>
+          )}
 
           <Menu.Item key="spacer" className="menu__spacer" disabled />
 
@@ -51,6 +55,14 @@ export default function App() {
           <Route path="/" element={<Home />} />
           <Route path="/product/:id" element={<ProductDetail />} />
           <Route path="/cart" element={<Cart />} />
+          <Route
+            path="/my-orders"
+            element={
+              <RequireRole role="buyer">
+                <BuyerOrders />
+              </RequireRole>
+            }
+          />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route

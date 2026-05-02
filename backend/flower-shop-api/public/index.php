@@ -321,7 +321,69 @@ try {
             ORDER BY id DESC
         ");
         $stmt->execute([":buyer_id" => $buyerId]);
-        ok($stmt->fetchAll());
+        $orders = $stmt->fetchAll();
+
+        if (!$orders) {
+            ok([]);
+        }
+
+        $orderIds = array_map(function ($order) {
+            return intval($order["id"]);
+        }, $orders);
+
+        $placeholders = implode(",", array_fill(0, count($orderIds), "?"));
+        $itemsStmt = db()->prepare("
+            SELECT
+                oi.order_id,
+                oi.product_id,
+                oi.seller_id,
+                oi.quantity,
+                oi.price,
+                oi.subtotal,
+                p.name AS product_name,
+                p.image_url AS product_image_url
+            FROM order_items oi
+            INNER JOIN products p ON p.id = oi.product_id
+            WHERE oi.order_id IN ($placeholders)
+            ORDER BY oi.id ASC
+        ");
+        $itemsStmt->execute($orderIds);
+        $items = $itemsStmt->fetchAll();
+
+        $itemsByOrder = [];
+        foreach ($items as $item) {
+            $orderId = intval($item["order_id"]);
+            if (!isset($itemsByOrder[$orderId])) {
+                $itemsByOrder[$orderId] = [];
+            }
+            $itemsByOrder[$orderId][] = [
+                "product_id" => intval($item["product_id"]),
+                "seller_id" => intval($item["seller_id"]),
+                "product_name" => $item["product_name"],
+                "product_image_url" => $item["product_image_url"],
+                "quantity" => intval($item["quantity"]),
+                "price" => intval($item["price"]),
+                "subtotal" => intval($item["subtotal"]),
+            ];
+        }
+
+        $result = array_map(function ($order) use ($itemsByOrder) {
+            $orderId = intval($order["id"]);
+            return [
+                "id" => $orderId,
+                "buyer_id" => intval($order["buyer_id"]),
+                "total_amount" => intval($order["total_amount"]),
+                "status" => $order["status"],
+                "receiver_name" => $order["receiver_name"],
+                "receiver_phone" => $order["receiver_phone"],
+                "receiver_address" => $order["receiver_address"],
+                "note" => $order["note"],
+                "created_at" => $order["created_at"],
+                "items" => $itemsByOrder[$orderId] ?? [],
+            ];
+        }, $orders);
+
+        ok($result);
     }
 
     if ($method === "GET" && $path === "/api/seller/stats") {
