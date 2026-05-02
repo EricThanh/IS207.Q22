@@ -1,11 +1,14 @@
-import { Button, Card, InputNumber, Popconfirm, Table, Typography, message } from "antd";
-import { Link } from "react-router-dom";
-import { useCart } from "../store/CartContext";
-import "./Cart.css";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { Button, Card, Form, Input, InputNumber, Popconfirm, Table, Typography, message } from "antd";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import CheckoutQrModal from "./CheckoutQrModal";
+import { useCart } from "../store/CartContext";
+import { useAuth } from "../store/AuthContext";
+import { orderApi } from "../api/orderApi";
+import "./Cart.css";
 
 const { Title, Text } = Typography;
+const { TextArea } = Input;
 
 function formatVnd(n) {
     return Number(n || 0).toLocaleString("vi-VN") + " đ";
@@ -25,12 +28,25 @@ const ACCOUNT_NO = "106874813976";
 const ACCOUNT_NAME = "NGUYEN MINH THANH";
 
 export default function Cart() {
+    const [form] = Form.useForm();
+    const nav = useNavigate();
+    const location = useLocation();
+    const { user, isLoggedIn } = useAuth();
     const { items, totalPrice, updateQty, removeItem, clearCart } = useCart();
-
-    // ✅ Hooks phải nằm trong component
+    const [submitting, setSubmitting] = useState(false);
     const [qrOpen, setQrOpen] = useState(false);
     const [qrUrl, setQrUrl] = useState("");
     const [qrInfo, setQrInfo] = useState("");
+    const [qrAmount, setQrAmount] = useState(0);
+
+    useEffect(() => {
+        form.setFieldsValue({
+            receiver_name: user?.full_name || "",
+            receiver_phone: user?.phone || "",
+            receiver_address: "",
+            note: "",
+        });
+    }, [form, user]);
 
     const columns = [
         {
@@ -96,6 +112,61 @@ export default function Cart() {
         },
     ];
 
+    async function onCheckout(values) {
+        if (!isLoggedIn) {
+            message.info("Vui lòng đăng nhập để đặt hàng");
+            nav("/login", { state: { from: location } });
+            return;
+        }
+
+        if (items.length === 0) {
+            message.warning("Giỏ hàng đang trống");
+            return;
+        }
+
+        const invalidItem = items.find((item) => !item.seller_id);
+        if (invalidItem) {
+            message.error("Có sản phẩm thiếu thông tin người bán. Hãy thêm lại sản phẩm vào giỏ.");
+            return;
+        }
+
+        setSubmitting(true);
+        try {
+            const res = await orderApi.create({
+                receiver_name: values.receiver_name,
+                receiver_phone: values.receiver_phone,
+                receiver_address: values.receiver_address,
+                note: values.note || "",
+                items: items.map((item) => ({
+                    product_id: item.id,
+                    seller_id: item.seller_id,
+                    quantity: item.qty,
+                })),
+            });
+
+            const order = res.data.data;
+            const addInfo = `ORDER-${order.order_id}`;
+            const url = buildVietQrImageUrl({
+                bankId: BANK_ID,
+                accountNo: ACCOUNT_NO,
+                amount: order.total_amount,
+                addInfo,
+                accountName: ACCOUNT_NAME,
+            });
+
+            setQrInfo(addInfo);
+            setQrUrl(url);
+            setQrAmount(order.total_amount);
+            setQrOpen(true);
+            clearCart();
+            message.success(`Đã tạo đơn #${order.order_id}`);
+        } catch (e) {
+            message.error(e?.response?.data?.message || "Tạo đơn hàng thất bại");
+        } finally {
+            setSubmitting(false);
+        }
+    }
+
     return (
         <div className="cart">
             <Title level={3} className="cart__title">
@@ -131,37 +202,53 @@ export default function Cart() {
                         >
                             <Button disabled={items.length === 0}>Xóa hết</Button>
                         </Popconfirm>
-
-                        <Button
-                            type="primary"
-                            disabled={items.length === 0}
-                            onClick={() => {
-                                const addInfo = `FLOWER-${Date.now()}`;
-                                const url = buildVietQrImageUrl({
-                                    bankId: BANK_ID,
-                                    accountNo: ACCOUNT_NO,
-                                    amount: totalPrice,
-                                    addInfo,
-                                    accountName: ACCOUNT_NAME,
-                                });
-
-                                setQrInfo(addInfo);
-                                setQrUrl(url);
-                                setQrOpen(true);
-                            }}
-                        >
-                            Thanh toán
-                        </Button>
                     </div>
                 </div>
             </Card>
 
+            <Card className="cart__checkout" title="Thông tin nhận hàng">
+                <Form form={form} layout="vertical" onFinish={onCheckout}>
+                    <div className="cart__formGrid">
+                        <Form.Item
+                            label="Người nhận"
+                            name="receiver_name"
+                            rules={[{ required: true, message: "Nhập tên người nhận" }]}
+                        >
+                            <Input placeholder="Nguyễn Văn A" />
+                        </Form.Item>
+
+                        <Form.Item
+                            label="Số điện thoại"
+                            name="receiver_phone"
+                            rules={[{ required: true, message: "Nhập số điện thoại" }]}
+                        >
+                            <Input placeholder="09xxxxxxxx" />
+                        </Form.Item>
+                    </div>
+
+                    <Form.Item
+                        label="Địa chỉ nhận hàng"
+                        name="receiver_address"
+                        rules={[{ required: true, message: "Nhập địa chỉ nhận hàng" }]}
+                    >
+                        <TextArea rows={3} placeholder="Số nhà, đường, phường/xã, quận/huyện, tỉnh/thành" />
+                    </Form.Item>
+
+                    <Form.Item label="Ghi chú" name="note">
+                        <TextArea rows={3} placeholder="Ví dụ: giao giờ hành chính" />
+                    </Form.Item>
+
+                    <Button type="primary" htmlType="submit" loading={submitting} disabled={items.length === 0}>
+                        Tạo đơn và thanh toán
+                    </Button>
+                </Form>
+            </Card>
 
             <CheckoutQrModal
                 open={qrOpen}
                 onClose={() => setQrOpen(false)}
                 qrUrl={qrUrl}
-                amount={totalPrice}
+                amount={qrAmount}
                 addInfo={qrInfo}
             />
         </div>

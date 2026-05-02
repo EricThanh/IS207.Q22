@@ -52,3 +52,19 @@
   display: flex;
   gap: 10px;
 }
+
+.cart__checkout {
+  margin-top: 16px;
+}
+
+.cart__formGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+@media (max-width: 768px) {
+  .cart__formGrid {
+    grid-template-columns: 1fr;
+  }
+}

@@ -31,6 +31,7 @@ function cartReducer(state, action) {
                     ...state.items,
                     {
                         id: item.id,
+                        seller_id: item.seller_id,
                         name: item.name,
                         price: Number(item.price) || 0,
                         image_url: item.image_url || "",
