@@ -1,49 +1,196 @@
 .app {
   min-height: 100vh;
-  
+  background:
+    radial-gradient(circle at top, rgba(255, 240, 243, 0.8), transparent 22%),
+    linear-gradient(180deg, #fffdfd 0%, #fff8f6 100%);
 }
 
 .app__header {
-  padding: 0;
-  
+  height: auto;
+  line-height: normal;
+  padding: 18px 24px;
+  background: transparent;
 }
 
-.app__menu {
-  line-height: 64px; 
-  background: pink;
+.app__headerInner {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 14px 18px;
   display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.86);
+  border: 1px solid rgba(231, 214, 210, 0.85);
+  box-shadow: 0 14px 38px rgba(105, 70, 61, 0.08);
+  backdrop-filter: blur(10px);
+}
+
+.app__brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  text-decoration: none;
+}
+
+.app__brandMark {
+  width: 48px;
+  height: 48px;
+  border-radius: 16px;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(135deg, #d94f70 0%, #8f1d48 100%);
+  color: #fff;
+  font-size: 24px;
+  font-weight: 800;
+  box-shadow: 0 14px 26px rgba(143, 29, 72, 0.22);
+}
+
+.app__brandText {
+  display: flex;
+  flex-direction: column;
+}
+
+.app__brandText strong {
+  color: #101828;
+  font-size: 18px;
+  line-height: 1.1;
+}
+
+.app__brandText span {
+  color: #667085;
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+.app__nav {
+  display: flex;
+  align-items: center;
   justify-content: center;
-  
- 
+  gap: 8px;
+  flex: 1;
+  flex-wrap: wrap;
+}
+
+.app__navLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: 999px;
+  color: #344054;
+  text-decoration: none;
+  font-weight: 600;
+  transition: background-color 0.2s ease, color 0.2s ease, transform 0.2s ease;
+}
+
+.app__navLink:hover {
+  background: #fff1f0;
+  color: #8f1d48;
+  transform: translateY(-1px);
+}
+
+.app__navLink--cart {
+  background: #fff6f7;
+}
+
+.app__cartIconWrap {
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  background: #ffffff;
+  color: #8f1d48;
+  box-shadow: inset 0 0 0 1px rgba(217, 79, 112, 0.14);
+}
+
+.app__cartIcon {
+  font-size: 17px;
+}
+
+.app__actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.app__userPill {
+  padding: 10px 14px;
+  border-radius: 18px;
+  background: linear-gradient(180deg, #fff6f0 0%, #ffffff 100%);
+  border: 1px solid rgba(229, 196, 167, 0.65);
+}
+
+.app__userPill strong {
+  display: block;
+  color: #101828;
+  line-height: 1.2;
+}
+
+.app__userLabel {
+  display: block;
+  color: #b42318;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-bottom: 2px;
+}
+
+.app__ghostBtn {
+  border-radius: 999px;
+  height: 40px;
+  padding-inline: 16px;
+}
+
+.app__primaryBtn {
+  border-radius: 999px;
+  height: 40px;
+  padding-inline: 16px;
+  background: linear-gradient(135deg, #d94f70 0%, #8f1d48 100%);
+  border: none;
+  box-shadow: 0 12px 24px rgba(143, 29, 72, 0.18);
 }
 
 .app__content {
   padding: 24px;
+  padding-bottom: 80px;
 }
 
 .app__page {
   padding: 8px 0;
 }
-.app__menu .ant-menu-item a {
-  color: #174087 !important;
-}
-.menu__spacer {
-  margin-left: auto;
-  cursor: default;
-  opacity: 0;
-  pointer-events: none;
+
+@media (max-width: 1080px) {
+  .app__headerInner {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .app__nav {
+    justify-content: flex-start;
+  }
+
+  .app__actions {
+    justify-content: flex-start;
+    flex-wrap: wrap;
+  }
 }
 
-.menu__hello {
-  cursor: default;
-}
-.menu__hello * {
-  color: #174087 !important;
-}
-.menu__logout{
-  color: #174087 !important;
-}
-.app__content {
-  padding: 24px;
-  padding-bottom: 80px; 
+@media (max-width: 640px) {
+  .app__header {
+    padding: 16px 14px;
+  }
+
+  .app__content {
+    padding: 16px;
+    padding-bottom: 80px;
+  }
+
+  .app__brandText span {
+    display: none;
+  }
 }
