@@ -20,6 +20,7 @@ import {
 import { Column, Pie } from "@ant-design/charts";
 import { catalogApi } from "../api/catalogApi";
 import { axiosClient } from "../api/axiosClient";
+import { orderApi } from "../api/orderApi";
 import "./SellerAddProduct.css";
 
 const { Paragraph, Text, Title } = Typography;
@@ -34,7 +35,7 @@ function slugify(str) {
 }
 
 function formatVnd(n) {
-    return Number(n || 0).toLocaleString("vi-VN") + " đ";
+    return Number(n || 0).toLocaleString("vi-VN") + " d";
 }
 
 function formatChartDate(date) {
@@ -59,6 +60,7 @@ const initialValues = {
     category_id: undefined,
     name: "",
     price: 1,
+    discount_percent: 0,
     stock: 0,
     image_url: "",
     description: "",
@@ -67,6 +69,7 @@ const initialValues = {
 export default function SellerAddProduct() {
     const [categories, setCategories] = useState([]);
     const [products, setProducts] = useState([]);
+    const [orders, setOrders] = useState([]);
     const [stats, setStats] = useState({
         summary: {
             total_revenue: 0,
@@ -81,9 +84,11 @@ export default function SellerAddProduct() {
     });
     const [selectedDays, setSelectedDays] = useState(7);
     const [loadingProducts, setLoadingProducts] = useState(false);
+    const [loadingOrders, setLoadingOrders] = useState(false);
     const [loadingStats, setLoadingStats] = useState(false);
     const [submitting, setSubmitting] = useState(false);
     const [uploading, setUploading] = useState(false);
+    const [confirmingOrderId, setConfirmingOrderId] = useState(null);
     const [editingProduct, setEditingProduct] = useState(null);
     const [form] = Form.useForm();
 
@@ -145,9 +150,21 @@ export default function SellerAddProduct() {
             const res = await axiosClient.get("/api/seller/products");
             setProducts(res.data.data || []);
         } catch (e) {
-            message.error(e?.response?.data?.message || "Không tải được sản phẩm của bạn");
+            message.error(e?.response?.data?.message || "Khong tai duoc san pham cua ban");
         } finally {
             setLoadingProducts(false);
+        }
+    }
+
+    async function loadOrders() {
+        setLoadingOrders(true);
+        try {
+            const res = await orderApi.getSellerOrders();
+            setOrders(res.data.data || []);
+        } catch (e) {
+            message.error(e?.response?.data?.message || "Khong tai duoc don hang cua shop");
+        } finally {
+            setLoadingOrders(false);
         }
     }
 
@@ -159,7 +176,7 @@ export default function SellerAddProduct() {
             });
             setStats(res.data.data);
         } catch (e) {
-            message.error(e?.response?.data?.message || "Không tải được thống kê");
+            message.error(e?.response?.data?.message || "Khong tai duoc thong ke");
         } finally {
             setLoadingStats(false);
         }
@@ -167,9 +184,10 @@ export default function SellerAddProduct() {
 
     useEffect(() => {
         loadCategories().catch(() => {
-            message.error("Không tải được danh mục");
+            message.error("Khong tai duoc danh muc");
         });
         loadProducts();
+        loadOrders();
     }, []);
 
     useEffect(() => {
@@ -188,6 +206,7 @@ export default function SellerAddProduct() {
             category_id: product.category_id,
             name: product.name,
             price: Number(product.price) || 1,
+            discount_percent: Number(product.discount_percent) || 0,
             stock: Number(product.stock) || 0,
             image_url: product.image_url || "",
             description: product.description || "",
@@ -249,6 +268,20 @@ export default function SellerAddProduct() {
         }
     }
 
+    async function confirmOrder(orderId) {
+        setConfirmingOrderId(orderId);
+        try {
+            await orderApi.confirmSellerOrder(orderId);
+            message.success(`Đã xác nhận đơn #${orderId}`);
+            loadOrders();
+            loadStats(selectedDays);
+        } catch (e) {
+            message.error(e?.response?.data?.message || "Xác nhận đơn hàng thất bại");
+        } finally {
+            setConfirmingOrderId(null);
+        }
+    }
+
     const productColumns = [
         {
             title: "Sản phẩm",
@@ -275,10 +308,21 @@ export default function SellerAddProduct() {
         },
         {
             title: "Giá",
-            dataIndex: "price",
+            dataIndex: "final_price",
             key: "price",
-            width: 140,
-            render: (value) => formatVnd(value),
+            width: 180,
+            render: (_, product) => (
+                <div>
+                    <Text strong>{formatVnd(product.final_price ?? product.price)}</Text>
+                    {Number(product.discount_percent) > 0 ? (
+                        <div>
+                            <Text type="secondary">
+                                <del>{formatVnd(product.price)}</del> -{product.discount_percent}%
+                            </Text>
+                        </div>
+                    ) : null}
+                </div>
+            ),
         },
         {
             title: "Kho",
@@ -305,7 +349,7 @@ export default function SellerAddProduct() {
                 <Space wrap>
                     <Button onClick={() => startEdit(product)}>Sửa</Button>
                     <Popconfirm
-                        title="Xóa sản phẩm này?"
+                        title="Xóa sản phẩm này"
                         okText="Xóa"
                         cancelText="Hủy"
                         onConfirm={() => deleteProduct(product.id)}
@@ -313,6 +357,84 @@ export default function SellerAddProduct() {
                         <Button danger>Xóa</Button>
                     </Popconfirm>
                 </Space>
+            ),
+        },
+    ];
+
+    const orderColumns = [
+        {
+            title: "Đơn hàng",
+            key: "order",
+            width: 150,
+            render: (_, order) => (
+                <div>
+                    <Text strong>#{order.id}</Text>
+                    <div>
+                        <Text type="secondary">{new Date(order.created_at).toLocaleString("vi-VN")}</Text>
+                    </div>
+                </div>
+            ),
+        },
+        {
+            title: "Người nhận",
+            key: "receiver",
+            width: 190,
+            render: (_, order) => (
+                <div>
+                    <Text strong>{order.receiver_name}</Text>
+                    <div>
+                        <Text type="secondary">{order.receiver_phone}</Text>
+                    </div>
+                </div>
+            ),
+        },
+        {
+            title: "Sản phẩm",
+            key: "items",
+            render: (_, order) => (
+                <div className="seller__orderItems">
+                    {(order.items || []).map((item) => (
+                        <div key={`${order.id}-${item.product_id}`} className="seller__orderItem">
+                            <Text>{item.product_name}</Text>
+                            <Text type="secondary">
+                                {item.quantity} x {formatVnd(item.price)}
+                            </Text>
+                        </div>
+                    ))}
+                </div>
+            ),
+        },
+        {
+            title: "Trạng thái",
+            dataIndex: "status",
+            key: "status",
+            width: 140,
+            render: (value) => (
+                <Tag color={value === "pending" ? "gold" : value === "confirmed" ? "blue" : "default"}>
+                    {getStatusLabel(value)}
+                </Tag>
+            ),
+        },
+        {
+            title: "Tổng trị giá",
+            dataIndex: "total_amount",
+            key: "total_amount",
+            width: 140,
+            render: (value) => formatVnd(value),
+        },
+        {
+            title: "Thao tác",
+            key: "actions",
+            width: 160,
+            render: (_, order) => (
+                <Button
+                    type="primary"
+                    disabled={order.status !== "pending"}
+                    loading={confirmingOrderId === order.id}
+                    onClick={() => confirmOrder(order.id)}
+                >
+                    Xác nhận đơn
+                </Button>
             ),
         },
     ];
@@ -333,11 +455,11 @@ export default function SellerAddProduct() {
                     value: formatVnd(datum.revenue),
                 }),
                 (datum) => ({
-                    name: "Đơn hàng",
+                    name: "Don hang",
                     value: `${datum.orders_count}`,
                 }),
                 (datum) => ({
-                    name: "Sản phẩm bán",
+                    name: "San pham ban",
                     value: `${datum.items_sold}`,
                 }),
             ],
@@ -355,12 +477,7 @@ export default function SellerAddProduct() {
         angleField: "value",
         colorField: "type",
         innerRadius: 0.6,
-        label: {
-            text: "type",
-            style: {
-                fontWeight: 600,
-            },
-        },
+        
         legend: {
             color: {
                 position: "bottom",
@@ -376,10 +493,10 @@ export default function SellerAddProduct() {
                 <div className="seller__header">
                     <div>
                         <Title level={3} className="seller__title">
-                            Kênh người bán
+                            KÊNH NGƯỜI BÁN
                         </Title>
                         <Paragraph type="secondary" className="seller__subtitle">
-                            Theo dõi doanh số từ đơn hàng của shop và quản lý danh sách sản phẩm ngay trên một màn hình.
+                            {/* Theo doi doanh so, xac nhan don hang va quan ly san pham cua shop tren cung mot man hinh. */}
                         </Paragraph>
                     </div>
                     <Select
@@ -402,7 +519,7 @@ export default function SellerAddProduct() {
                     </Col>
                     <Col xs={24} sm={12} lg={6}>
                         <Card className="seller__statCard" loading={loadingStats}>
-                            <Statistic title="Tổng đơn có doanh thu" value={stats.summary.total_orders} />
+                            <Statistic title="Tổng đơn" value={stats.summary.total_orders} />
                         </Card>
                     </Col>
                     <Col xs={24} sm={12} lg={6}>
@@ -420,11 +537,7 @@ export default function SellerAddProduct() {
 
             <Row gutter={[16, 16]} className="seller__chartsRow">
                 <Col xs={24} xl={16}>
-                    <Card
-                        className="seller__card"
-                        title={`Doanh thu ${selectedDays} ngày gần đây`}
-                        loading={loadingStats}
-                    >
+                    <Card className="seller__card" title={`Doanh thu ${selectedDays} ngày gần đây`} loading={loadingStats}>
                         {dailySalesChartData.length > 0 ? (
                             <Column {...revenueChartConfig} />
                         ) : (
@@ -446,6 +559,21 @@ export default function SellerAddProduct() {
 
             <Card className="seller__card">
                 <Title level={4} className="seller__sectionTitle">
+                    Đơn hàng
+                </Title>
+                <Table
+                    rowKey="id"
+                    loading={loadingOrders}
+                    columns={orderColumns}
+                    dataSource={orders}
+                    pagination={{ pageSize: 5 }}
+                    locale={{ emptyText: "Chưa có đơn hàng nào" }}
+                    scroll={{ x: 980 }}
+                />
+            </Card>
+
+            <Card className="seller__card">
+                <Title level={4} className="seller__sectionTitle">
                     Top sản phẩm bán chạy
                 </Title>
                 <Table
@@ -454,7 +582,7 @@ export default function SellerAddProduct() {
                     columns={topProductColumns}
                     dataSource={stats.top_products}
                     pagination={false}
-                    locale={{ emptyText: "Chưa có sản phẩm nào phát sinh doanh thu" }}
+                    locale={{ emptyText: "Chưa có sản phẩm nào" }}
                     scroll={{ x: 520 }}
                 />
             </Card>
@@ -466,7 +594,7 @@ export default function SellerAddProduct() {
                             Quản lý sản phẩm
                         </Title>
                         <Paragraph type="secondary" className="seller__subtitle">
-                            Tạo mới, chỉnh sửa và cập nhật tồn kho cho sản phẩm của shop.
+                           
                         </Paragraph>
                     </div>
                     <Button onClick={resetForm} disabled={submitting || uploading}>
@@ -480,7 +608,7 @@ export default function SellerAddProduct() {
                         name="category_id"
                         rules={[{ required: true, message: "Chọn danh mục" }]}
                     >
-                        <Select options={categoryOptions} placeholder="Chọn danh mục" />
+                        <Select options={categoryOptions} placeholder="Chọn doanh mục" />
                     </Form.Item>
 
                     <Form.Item
@@ -497,6 +625,10 @@ export default function SellerAddProduct() {
                         rules={[{ required: true, message: "Nhập giá" }]}
                     >
                         <InputNumber min={1} style={{ width: "100%" }} />
+                    </Form.Item>
+
+                    <Form.Item label="Giảm giá (%)" name="discount_percent">
+                        <InputNumber min={0} max={90} style={{ width: "100%" }} />
                     </Form.Item>
 
                     <Form.Item label="Số lượng" name="stock">
@@ -547,7 +679,7 @@ export default function SellerAddProduct() {
 
             <Card className="seller__card seller__tableCard">
                 <Title level={4} className="seller__sectionTitle">
-                    Sản phẩm của bạn
+                    Sản phẩm
                 </Title>
 
                 <Table

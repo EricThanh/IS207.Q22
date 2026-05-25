@@ -1,6 +1,11 @@
-import { Badge, Button, Layout } from "antd";
-import { ShoppingCartOutlined, ShopOutlined } from "@ant-design/icons";
-import { Link, Route, Routes } from "react-router-dom";
+import { useState } from "react";
+import { Badge, Layout } from "antd";
+import {
+  SearchOutlined,
+  ShoppingCartOutlined,
+  UserOutlined,
+} from "@ant-design/icons";
+import { Link, Route, Routes, useNavigate } from "react-router-dom";
 import Home from "./pages/Home";
 import ProductDetail from "./pages/ProductDetail";
 import Cart from "./pages/Cart";
@@ -19,61 +24,86 @@ const { Header, Content } = Layout;
 export default function App() {
   const { user, isLoggedIn, logout } = useAuth();
   const { totalQty } = useCart();
+  const navigate = useNavigate();
+  const [headerSearch, setHeaderSearch] = useState("");
+
+  function handleHeaderSearch(event) {
+    event.preventDefault();
+
+    const keyword = headerSearch.trim();
+    navigate(keyword ? `/?search=${encodeURIComponent(keyword)}` : "/");
+  }
+
+  function handleUserClick() {
+    if (isLoggedIn) {
+      logout();
+      return;
+    }
+
+    navigate("/login");
+  }
 
   return (
     <Layout className="app">
       <Header className="app__header">
         <div className="app__headerInner">
           <Link to="/" className="app__brand">
-            <span className="app__brandMark">F</span>
-            <div className="app__brandText">
-              <strong>Flower Shop</strong>
-              <span>Hoa dep cho moi dip dac biet</span>
-            </div>
+            <span className="app__brandMark">🌸</span>
+            <strong className="app__brandName">Blossom Shop</strong>
           </Link>
 
-          <nav className="app__nav">
-            <Link to="/" className="app__navLink">Trang chủ</Link>
-            <Link to="/cart" className="app__navLink app__navLink--cart">
-              <Badge count={totalQty} size="small" offset={[2, -2]}>
-                <span className="app__cartIconWrap">
-                  <ShoppingCartOutlined className="app__cartIcon" />
-                </span>
-              </Badge>
-              <span>Giỏ hàng</span>
+          <nav className="app__nav" aria-label="Main navigation">
+            <Link to="/" className="app__navLink">
+              Trang chủ
             </Link>
             {isLoggedIn && user?.role === "buyer" && (
-              <Link to="/my-orders" className="app__navLink">Đơn hàng</Link>
+              <Link to="/my-orders" className="app__navLink">
+                Đơn hàng
+              </Link>
             )}
             {isLoggedIn && user?.role === "seller" && (
               <Link to="/seller/products/new" className="app__navLink">
-                <ShopOutlined />
-                <span>Kenh nguoi ban</span>
+                Kênh người bán
               </Link>
             )}
           </nav>
 
           <div className="app__actions">
-            {isLoggedIn ? (
-              <>
-                <div className="app__userPill">
-                  <span className="app__userLabel">Xin chào</span>
-                  <strong>{user?.full_name}</strong>
-                </div>
-                <Button className="app__ghostBtn" onClick={logout}>
-                  Đăng xuất
-                </Button>
-              </>
-            ) : (
-              <>
-                <Link to="/login">
-                  <Button className="app__ghostBtn">Đăng nhập</Button>
-                </Link>
-                <Link to="/register">
-                  <Button type="primary" className="app__primaryBtn">Đăng ký</Button>
-                </Link>
-              </>
-            )}
+            <form className="app__search" onSubmit={handleHeaderSearch}>
+              <SearchOutlined className="app__searchIcon" />
+              <input
+                className="app__searchInput"
+                type="search"
+                placeholder="Search flowers..."
+                value={headerSearch}
+                onChange={(event) => setHeaderSearch(event.target.value)}
+              />
+            </form>
+
+            <button
+              type="button"
+              className={`app__iconButton ${
+                isLoggedIn ? "app__iconButton--user" : ""
+              }`}
+              onClick={handleUserClick}
+              title={isLoggedIn ? "Đăng xuất" : "Đăng nhập"}
+            >
+              <UserOutlined />
+              {isLoggedIn && (
+                <span className="app__userName">{user?.full_name || "User"}</span>
+              )}
+            </button>
+
+            <button
+              type="button"
+              className="app__iconButton app__cartButton"
+              onClick={() => navigate("/cart")}
+              title="Giỏ hàng"
+            >
+              <Badge count={totalQty} size="small" offset={[3, -4]}>
+                <ShoppingCartOutlined className="app__cartIcon" />
+              </Badge>
+            </button>
           </div>
         </div>
       </Header>

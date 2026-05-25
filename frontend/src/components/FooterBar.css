@@ -1,68 +1,139 @@
 .footerbar {
-  position: fixed;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  height: 54px;
-  background: pink; 
-  z-index: 9999;
-  display: flex;
-  align-items: center;
-  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.08);
+  margin-top: 32px;
+  padding: 0 24px 28px;
+  
 }
 
 .footerbar__inner {
-  width: 100%;
-  max-width: 1100px;
+  max-width: 1280px;
   margin: 0 auto;
-  padding: 0 14px;
+  padding: 22px 24px;
   display: flex;
-  justify-content: center;
-  gap: 18px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  border-radius: 28px;
+  background:
+    radial-gradient(circle at left top, rgba(255, 224, 231, 0.9), transparent 28%),
+    linear-gradient(135deg, #fff6f4 0%, #fffefe 50%, #fff3f5 100%);
+  border: 1px solid rgba(231, 211, 214, 0.9);
+  box-shadow: 0 18px 44px rgba(109, 77, 72, 0.08);
+}
+
+.footerbar__brand {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+}
+
+.footerbar__mark {
+  width: 46px;
+  height: 46px;
+  border-radius: 16px;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(135deg, #d94f70 0%, #8f1d48 100%);
+  color: #fff;
+  font-size: 22px;
+  font-weight: 800;
+  box-shadow: 0 12px 26px rgba(143, 29, 72, 0.2);
+}
+
+.footerbar__brandText {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.footerbar__brandText strong {
+  color: #101828;
+  font-size: 17px;
+}
+
+.footerbar__brandText span {
+  color: #667085;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.footerbar__actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
 }
 
 .footerbar__item {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  color: #fff;
+  gap: 10px;
+  padding: 11px 15px;
+  border-radius: 999px;
   text-decoration: none;
-  font-weight: 600;
-  padding: 8px 12px;
-  border-radius: 10px;
-  background: rgba(255, 255, 255, 0.12);
-  transition: transform 0.08s ease, background 0.12s ease;
+  font-weight: 700;
+  transition: transform 0.18s ease, box-shadow 0.18s ease, background-color 0.18s ease;
 }
 
 .footerbar__item:hover {
-  background: rgba(255, 255, 255, 0.2);
   transform: translateY(-1px);
 }
 
+.footerbar__item--facebook {
+  background: #eef4ff;
+  color: #174087;
+  box-shadow: inset 0 0 0 1px rgba(23, 64, 135, 0.08);
+}
+
+.footerbar__item--facebook:hover {
+  box-shadow: 0 12px 24px rgba(23, 64, 135, 0.12);
+}
+
+.footerbar__item--phone {
+  background: #fff0f3;
+  color: #8f1d48;
+  box-shadow: inset 0 0 0 1px rgba(143, 29, 72, 0.08);
+}
+
+.footerbar__item--phone:hover {
+  box-shadow: 0 12px 24px rgba(143, 29, 72, 0.12);
+}
+
 .footerbar__icon {
-  font-size: 16px;
+  width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  font-size: 15px;
   line-height: 1;
 }
 
 .footerbar__text {
-  font-size: 14px;
   white-space: nowrap;
 }
 
-.footerbar__hotline {
-  background: rgba(255, 255, 255, 0.18);
+@media (max-width: 860px) {
+  .footerbar__inner {
+    flex-direction: column;
+    align-items: flex-start;
+  }
 }
 
-/* Mobile: chỉ hiện icon + rút gọn text */
 @media (max-width: 560px) {
-  .footerbar__text {
-    display: none;
+  .footerbar {
+    padding: 0 16px 22px;
   }
+
   .footerbar__inner {
-    justify-content: space-around;
-    gap: 10px;
+    padding: 18px;
   }
+
+  .footerbar__actions {
+    width: 100%;
+  }
+
   .footerbar__item {
-    padding: 10px 14px;
+    width: 100%;
+    justify-content: center;
   }
 }

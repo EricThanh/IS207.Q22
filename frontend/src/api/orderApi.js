@@ -7,4 +7,10 @@ export const orderApi = {
   getMyOrders() {
     return axiosClient.get("/api/orders/my");
   },
+  getSellerOrders() {
+    return axiosClient.get("/api/seller/orders");
+  },
+  confirmSellerOrder(orderId) {
+    return axiosClient.put(`/api/seller/orders/${orderId}/confirm`);
+  },
 };

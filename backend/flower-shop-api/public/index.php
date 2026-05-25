@@ -110,7 +110,18 @@ try {
         $search = trim($_GET["search"] ?? "");
         $categoryId = intval($_GET["category_id"] ?? 0);
 
-        $sql = "SELECT id, seller_id, name, slug, price, stock, image_url, description, category_id
+        $sql = "SELECT
+                id,
+                seller_id,
+                name,
+                slug,
+                price AS original_price,
+                GREATEST(price - FLOOR(price * COALESCE(discount_percent, 0) / 100), 0) AS price,
+                COALESCE(discount_percent, 0) AS discount_percent,
+                stock,
+                image_url,
+                description,
+                category_id
             FROM products
             WHERE status = 1";
         $params = [];
@@ -132,7 +143,18 @@ try {
 
     if ($method === "GET" && preg_match("#^/api/products/(\\d+)$#", $path, $m)) {
         $id = intval($m[1]);
-        $stmt = db()->prepare("SELECT id, seller_id, name, slug, price, stock, image_url, description, category_id
+        $stmt = db()->prepare("SELECT
+            id,
+            seller_id,
+            name,
+            slug,
+            price AS original_price,
+            GREATEST(price - FLOOR(price * COALESCE(discount_percent, 0) / 100), 0) AS price,
+            COALESCE(discount_percent, 0) AS discount_percent,
+            stock,
+            image_url,
+            description,
+            category_id
             FROM products
             WHERE id = :id AND status = 1
             LIMIT 1");
@@ -189,7 +211,7 @@ try {
             $orderLineItems = [];
 
             $productStmt = $pdo->prepare("
-                SELECT id, seller_id, name, price, stock, status
+                SELECT id, seller_id, name, price, COALESCE(discount_percent, 0) AS discount_percent, stock, status
                 FROM products
                 WHERE id = :id
                 LIMIT 1
@@ -214,7 +236,9 @@ try {
                     throw new Exception("Sản phẩm \"" . $product["name"] . "\" không đủ tồn kho");
                 }
 
-                $price = intval($product["price"]);
+                $originalPrice = intval($product["price"]);
+                $discountPercent = intval($product["discount_percent"]);
+                $price = max(0, $originalPrice - intval(floor($originalPrice * $discountPercent / 100)));
                 $quantity = intval($item["quantity"]);
                 $subtotal = $price * $quantity;
                 $totalAmount += $subtotal;
@@ -384,6 +408,134 @@ try {
         }, $orders);
 
         ok($result);
+    }
+
+    if ($method === "GET" && $path === "/api/seller/orders") {
+        $payload = require_seller($JWT_SECRET);
+        $sellerId = intval($payload["uid"]);
+
+        $stmt = db()->prepare("
+            SELECT
+                o.id,
+                o.buyer_id,
+                o.total_amount,
+                o.status,
+                o.receiver_name,
+                o.receiver_phone,
+                o.receiver_address,
+                o.note,
+                o.created_at
+            FROM orders o
+            INNER JOIN order_items oi ON oi.order_id = o.id
+            WHERE oi.seller_id = :seller_id
+            GROUP BY o.id, o.buyer_id, o.total_amount, o.status, o.receiver_name, o.receiver_phone, o.receiver_address, o.note, o.created_at
+            ORDER BY o.id DESC
+        ");
+        $stmt->execute([":seller_id" => $sellerId]);
+        $orders = $stmt->fetchAll();
+
+        if (!$orders) {
+            ok([]);
+        }
+
+        $orderIds = array_map(function ($order) {
+            return intval($order["id"]);
+        }, $orders);
+
+        $placeholders = implode(",", array_fill(0, count($orderIds), "?"));
+        $params = array_merge([$sellerId], $orderIds);
+
+        $itemsStmt = db()->prepare("
+            SELECT
+                oi.order_id,
+                oi.product_id,
+                oi.quantity,
+                oi.price,
+                oi.subtotal,
+                p.name AS product_name,
+                p.image_url AS product_image_url
+            FROM order_items oi
+            INNER JOIN products p ON p.id = oi.product_id
+            WHERE oi.seller_id = ?
+              AND oi.order_id IN ($placeholders)
+            ORDER BY oi.id ASC
+        ");
+        $itemsStmt->execute($params);
+        $items = $itemsStmt->fetchAll();
+
+        $itemsByOrder = [];
+        foreach ($items as $item) {
+            $orderId = intval($item["order_id"]);
+            if (!isset($itemsByOrder[$orderId])) {
+                $itemsByOrder[$orderId] = [];
+            }
+            $itemsByOrder[$orderId][] = [
+                "product_id" => intval($item["product_id"]),
+                "product_name" => $item["product_name"],
+                "product_image_url" => $item["product_image_url"],
+                "quantity" => intval($item["quantity"]),
+                "price" => intval($item["price"]),
+                "subtotal" => intval($item["subtotal"]),
+            ];
+        }
+
+        $result = array_map(function ($order) use ($itemsByOrder) {
+            $orderId = intval($order["id"]);
+            return [
+                "id" => $orderId,
+                "buyer_id" => intval($order["buyer_id"]),
+                "total_amount" => intval($order["total_amount"]),
+                "status" => $order["status"],
+                "receiver_name" => $order["receiver_name"],
+                "receiver_phone" => $order["receiver_phone"],
+                "receiver_address" => $order["receiver_address"],
+                "note" => $order["note"],
+                "created_at" => $order["created_at"],
+                "items" => $itemsByOrder[$orderId] ?? [],
+            ];
+        }, $orders);
+
+        ok($result);
+    }
+
+    if ($method === "PUT" && preg_match("#^/api/seller/orders/(\\d+)/confirm$#", $path, $m)) {
+        $payload = require_seller($JWT_SECRET);
+        $sellerId = intval($payload["uid"]);
+        $orderId = intval($m[1]);
+
+        $checkStmt = db()->prepare("
+            SELECT o.id, o.status
+            FROM orders o
+            INNER JOIN order_items oi ON oi.order_id = o.id
+            WHERE o.id = :order_id
+              AND oi.seller_id = :seller_id
+            LIMIT 1
+        ");
+        $checkStmt->execute([
+            ":order_id" => $orderId,
+            ":seller_id" => $sellerId,
+        ]);
+        $order = $checkStmt->fetch();
+
+        if (!$order) fail("Đơn hàng không tồn tại hoặc bạn không có quyền xác nhận", 404);
+        if (($order["status"] ?? "") !== "pending") fail("Chỉ có thể xác nhận đơn đang chờ xác nhận", 400);
+
+        $updateStmt = db()->prepare("
+            UPDATE orders
+            SET status = 'confirmed'
+            WHERE id = :order_id AND status = 'pending'
+        ");
+        $updateStmt->execute([":order_id" => $orderId]);
+
+        if ($updateStmt->rowCount() === 0) {
+            fail("Không thể xác nhận đơn hàng, vui lòng thử lại", 400);
+        }
+
+        ok([
+            "message" => "Xác nhận đơn hàng thành công",
+            "order_id" => $orderId,
+            "status" => "confirmed",
+        ]);
     }
 
     if ($method === "GET" && $path === "/api/seller/stats") {
@@ -612,7 +764,9 @@ try {
         $name = trim($body["name"] ?? "");
         $slug = trim($body["slug"] ?? "");
         $price = intval($body["price"] ?? 0);
+        $discountPercent = intval($body["discount_percent"] ?? 0);
         $stock = intval($body["stock"] ?? 0);
+        if ($discountPercent < 0 || $discountPercent > 90) fail("discount_percent phai tu 0 den 90");
         $imageUrl = trim($body["image_url"] ?? "");
         $description = trim($body["description"] ?? "");
 
@@ -626,8 +780,8 @@ try {
         if ($stmt->fetch()) fail("Slug đã tồn tại");
 
         $stmt = db()->prepare("
-            INSERT INTO products (seller_id, category_id, name, slug, price, stock, image_url, description, status)
-            VALUES (:seller_id, :category_id, :name, :slug, :price, :stock, :image_url, :description, 1)
+            INSERT INTO products (seller_id, category_id, name, slug, price, discount_percent, stock, image_url, description, status)
+            VALUES (:seller_id, :category_id, :name, :slug, :price, :discount_percent, :stock, :image_url, :description, 1)
         ");
         $stmt->execute([
             ":seller_id" => $sellerId,
@@ -635,6 +789,7 @@ try {
             ":name" => $name,
             ":slug" => $slug,
             ":price" => $price,
+            ":discount_percent" => $discountPercent,
             ":stock" => $stock,
             ":image_url" => $imageUrl,
             ":description" => $description,
@@ -648,7 +803,7 @@ try {
         $sellerId = intval($payload["uid"]);
 
         $stmt = db()->prepare("
-            SELECT id, name, slug, price, stock, image_url, description, category_id, status
+            SELECT id, name, slug, price, COALESCE(discount_percent, 0) AS discount_percent, GREATEST(price - FLOOR(price * COALESCE(discount_percent, 0) / 100), 0) AS final_price, stock, image_url, description, category_id, status
             FROM products
             WHERE seller_id = :seller_id
             ORDER BY id DESC
@@ -668,7 +823,9 @@ try {
         $name = trim($body["name"] ?? "");
         $slug = trim($body["slug"] ?? "");
         $price = intval($body["price"] ?? 0);
+        $discountPercent = intval($body["discount_percent"] ?? 0);
         $stock = intval($body["stock"] ?? 0);
+        if ($discountPercent < 0 || $discountPercent > 90) fail("discount_percent phai tu 0 den 90");
         $imageUrl = trim($body["image_url"] ?? "");
         $description = trim($body["description"] ?? "");
 
@@ -697,6 +854,7 @@ try {
                 name = :name,
                 slug = :slug,
                 price = :price,
+                discount_percent = :discount_percent,
                 stock = :stock,
                 image_url = :image_url,
                 description = :description
@@ -707,6 +865,7 @@ try {
             ":name" => $name,
             ":slug" => $slug,
             ":price" => $price,
+            ":discount_percent" => $discountPercent,
             ":stock" => $stock,
             ":image_url" => $imageUrl,
             ":description" => $description,

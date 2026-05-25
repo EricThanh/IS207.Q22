@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useMemo, useReducer } from "react";
 import { loadCart, saveCart } from "./cartStorage";
+import { useAuth } from "./AuthContext";
 
 const CartContext = createContext(null);
 
@@ -12,7 +13,7 @@ function calcTotals(items) {
 function cartReducer(state, action) {
     switch (action.type) {
         case "INIT": {
-            return { ...state, items: action.payload };
+            return { ...state, items: action.payload.items, loadedScope: action.payload.scope };
         }
 
         case "ADD": {
@@ -72,17 +73,27 @@ function cartReducer(state, action) {
 }
 
 export function CartProvider({ children }) {
-    const [state, dispatch] = useReducer(cartReducer, { items: [] });
+    const { user, ready } = useAuth();
+    const cartScope = user?.id ? `user_${user.id}` : "guest";
+    const [state, dispatch] = useReducer(cartReducer, { items: [], loadedScope: null });
 
     // init from localStorage
     useEffect(() => {
-        dispatch({ type: "INIT", payload: loadCart() });
-    }, []);
+        if (!ready) return;
+        dispatch({
+            type: "INIT",
+            payload: {
+                items: loadCart(cartScope),
+                scope: cartScope,
+            },
+        });
+    }, [cartScope, ready]);
 
     // persist to localStorage whenever items change
     useEffect(() => {
-        saveCart(state.items);
-    }, [state.items]);
+        if (!ready || state.loadedScope !== cartScope) return;
+        saveCart(cartScope, state.items);
+    }, [cartScope, ready, state.items, state.loadedScope]);
 
     const totals = useMemo(() => calcTotals(state.items), [state.items]);
 

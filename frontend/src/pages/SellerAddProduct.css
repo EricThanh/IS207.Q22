@@ -58,6 +58,18 @@
   align-items: center;
 }
 
+.seller__orderItems {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.seller__orderItem {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
 .seller__thumb {
   width: 72px;
   height: 72px;

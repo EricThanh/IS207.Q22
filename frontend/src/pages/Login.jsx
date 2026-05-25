@@ -1,4 +1,13 @@
-import { Button, Card, Form, Input, Typography, message } from "antd";
+import {
+    Button,
+    Card,
+    Checkbox,
+    Form,
+    Input,
+    Typography,
+    message,
+} from "antd";
+import { LockOutlined, MailOutlined } from "@ant-design/icons";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { authApi } from "../api/authApi";
 import { useAuth } from "../store/AuthContext";
@@ -28,9 +37,15 @@ export default function Login() {
     return (
         <div className="auth">
             <Card className="auth__card">
+                <div className="auth__flower">🌸</div>
+
                 <Title level={3} className="auth__title">
-                    Đăng nhập
+                    Welcome Back
                 </Title>
+
+                <Text className="auth__subtitle">
+                    Đăng nhập vào tài khoản
+                </Text>
 
                 <Form layout="vertical" onFinish={onFinish}>
                     <Form.Item
@@ -41,25 +56,38 @@ export default function Login() {
                             { type: "email", message: "Email không hợp lệ" },
                         ]}
                     >
-                        <Input placeholder="you@example.com" />
+                        <Input
+                            prefix={<MailOutlined />}
+                            placeholder="your@email.com"
+                        />
                     </Form.Item>
 
                     <Form.Item
-                        label="Mật khẩu"
+                        label="Password"
                         name="password"
                         rules={[{ required: true, message: "Nhập mật khẩu" }]}
                     >
-                        <Input.Password placeholder="••••••••" />
+                        <Input.Password
+                            prefix={<LockOutlined />}
+                            placeholder="••••••••"
+                        />
                     </Form.Item>
 
+                    <div className="auth__meta">
+                        <Checkbox className="auth__remember">Ghi nhớ đăng nhập</Checkbox>
+                        <button type="button" className="auth__forgot">
+                            Quên mật khẩu?
+                        </button>
+                    </div>
+
                     <Button type="primary" htmlType="submit" block>
-                        Đăng nhập
+                        Sign In
                     </Button>
                 </Form>
 
                 <div className="auth__footer">
-                    <Text type="secondary">
-                        Chưa có tài khoản? <Link to="/register">Đăng ký</Link>
+                    <Text>
+                        Không có tài khoản <Link to="/register">Đăng ký</Link>
                     </Text>
                 </div>
             </Card>

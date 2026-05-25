@@ -1,9 +1,13 @@
 // src/store/cartStorage.js
-const KEY = "flower_shop_cart_v1";
+const KEY_PREFIX = "flower_shop_cart_v1";
 
-export function loadCart() {
+export function getCartStorageKey(scope = "guest") {
+  return `${KEY_PREFIX}_${scope}`;
+}
+
+export function loadCart(scope = "guest") {
   try {
-    const raw = localStorage.getItem(KEY);
+    const raw = localStorage.getItem(getCartStorageKey(scope));
     if (!raw) return [];
     const parsed = JSON.parse(raw);
     return Array.isArray(parsed) ? parsed : [];
@@ -12,9 +16,9 @@ export function loadCart() {
   }
 }
 
-export function saveCart(items) {
+export function saveCart(scope = "guest", items = []) {
   try {
-    localStorage.setItem(KEY, JSON.stringify(items));
+    localStorage.setItem(getCartStorageKey(scope), JSON.stringify(items));
   } catch {
     // ignore
   }
