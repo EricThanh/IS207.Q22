@@ -27,7 +27,7 @@ const heroSlides = [
         eyebrow: "Bold Floral Mood",
         title: "Fresh Flowers, Delivered Daily",
         subtitle:
-            "Brighten every moment with our beautiful, handcrafted flower arrangements. Perfect for every occasion.",
+            "Nơi hương sắc nở thành yêu thương. Nâng niu hạnh phúc trong từng cánh hoa.",
     },
 ];
 

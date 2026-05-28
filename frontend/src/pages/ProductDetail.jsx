@@ -150,7 +150,7 @@ export default function ProductDetail() {
                             message.success("Đã thêm vào giỏ");
                         }}
                     >
-                        Add to Cart
+                        Thêm vào giỏ hàng
                     </Button>
                 </div>
             </div>
