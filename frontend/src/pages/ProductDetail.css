@@ -217,6 +217,62 @@
   opacity: 1;
 }
 
+.pd__reviewDivider {
+  margin: 42px 0 24px;
+  border-color: #f9d5e5;
+}
+
+.pd__reviews {
+  padding: 24px;
+  border-radius: 16px;
+  background: #ffffff;
+}
+
+.pd__reviewsTitle {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin: 0 0 16px !important;
+  color: #1a1a2e !important;
+}
+
+.pd__reviewsSummary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 400;
+}
+
+.pd__summaryRate {
+  font-size: 15px;
+}
+
+.pd__summaryText {
+  font-size: 14px;
+}
+
+.pd__reviewHeader {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.pd__reviewRate {
+  font-size: 13px;
+}
+
+.pd__reviewComment {
+  margin-bottom: 4px;
+  color: #555555;
+  line-height: 1.6;
+}
+
+.pd__reviewDate {
+  font-size: 12px;
+}
+
 .pd__loading,
 .pd__empty {
   min-height: 360px;

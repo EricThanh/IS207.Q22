@@ -1,6 +1,6 @@
 <?php
 header("Access-Control-Allow-Origin: http://localhost:5173");
-header("Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS");
+header("Access-Control-Allow-Methods: GET, POST, PUT, PATCH, DELETE, OPTIONS");
 header("Access-Control-Allow-Headers: Content-Type, Authorization");
 header("Content-Type: application/json; charset=utf-8");
 
@@ -109,6 +109,9 @@ try {
     if ($method === "GET" && $path === "/api/products") {
         $search = trim($_GET["search"] ?? "");
         $categoryId = intval($_GET["category_id"] ?? 0);
+        $minPrice = intval($_GET["min_price"] ?? 0);
+        $maxPrice = intval($_GET["max_price"] ?? 0);
+        $finalPriceSql = "GREATEST(price - FLOOR(price * COALESCE(discount_percent, 0) / 100), 0)";
 
         $sql = "SELECT
                 id,
@@ -116,7 +119,7 @@ try {
                 name,
                 slug,
                 price AS original_price,
-                GREATEST(price - FLOOR(price * COALESCE(discount_percent, 0) / 100), 0) AS price,
+                {$finalPriceSql} AS price,
                 COALESCE(discount_percent, 0) AS discount_percent,
                 stock,
                 image_url,
@@ -133,6 +136,14 @@ try {
         if ($search !== "") {
             $sql .= " AND name LIKE :search";
             $params[":search"] = "%" . $search . "%";
+        }
+        if ($minPrice > 0) {
+            $sql .= " AND {$finalPriceSql} >= :min_price";
+            $params[":min_price"] = $minPrice;
+        }
+        if ($maxPrice > 0) {
+            $sql .= " AND {$finalPriceSql} <= :max_price";
+            $params[":max_price"] = $maxPrice;
         }
 
         $sql .= " ORDER BY id DESC LIMIT 50";
@@ -162,6 +173,86 @@ try {
         $row = $stmt->fetch();
         if (!$row) fail("Product not found", 404);
         ok($row);
+    }
+
+    if ($method === "GET" && preg_match("#^/api/products/(\\d+)/reviews$#", $path, $m)) {
+        $productId = intval($m[1]);
+        $stmt = db()->prepare("
+            SELECT r.id, r.rating, r.comment, r.created_at, u.full_name
+            FROM reviews r
+            INNER JOIN users u ON r.user_id = u.id
+            WHERE r.product_id = :product_id
+            ORDER BY r.created_at DESC
+        ");
+        $stmt->execute([":product_id" => $productId]);
+        $rows = $stmt->fetchAll();
+
+        $avg = count($rows) > 0
+            ? round(array_sum(array_column($rows, "rating")) / count($rows), 1)
+            : null;
+
+        echo json_encode([
+            "data" => $rows,
+            "avg_rating" => $avg,
+            "total" => count($rows),
+        ], JSON_UNESCAPED_UNICODE);
+        exit;
+    }
+
+    if ($method === "POST" && $path === "/api/reviews") {
+        $payload = require_buyer($JWT_SECRET);
+        $buyerId = intval($payload["uid"]);
+        $body = read_json_body();
+
+        $productId = intval($body["product_id"] ?? 0);
+        $orderId = intval($body["order_id"] ?? 0);
+        $rating = intval($body["rating"] ?? 0);
+        $comment = trim($body["comment"] ?? "");
+
+        if ($rating < 1 || $rating > 5 || $productId <= 0 || $orderId <= 0) {
+            fail("Dữ liệu không hợp lệ", 422);
+        }
+
+        $check = db()->prepare("
+            SELECT oi.id
+            FROM order_items oi
+            INNER JOIN orders o ON oi.order_id = o.id
+            WHERE o.id = :order_id
+              AND o.buyer_id = :buyer_id
+              AND oi.product_id = :product_id
+              AND o.status = 'completed'
+            LIMIT 1
+        ");
+        $check->execute([
+            ":order_id" => $orderId,
+            ":buyer_id" => $buyerId,
+            ":product_id" => $productId,
+        ]);
+
+        if (!$check->fetch()) {
+            fail("Đơn hàng chưa hoàn thành hoặc không hợp lệ", 403);
+        }
+
+        try {
+            $ins = db()->prepare("
+                INSERT INTO reviews (product_id, user_id, order_id, rating, comment)
+                VALUES (:product_id, :user_id, :order_id, :rating, :comment)
+            ");
+            $ins->execute([
+                ":product_id" => $productId,
+                ":user_id" => $buyerId,
+                ":order_id" => $orderId,
+                ":rating" => $rating,
+                ":comment" => $comment,
+            ]);
+
+            http_response_code(201);
+            echo json_encode(["message" => "Đánh giá thành công"], JSON_UNESCAPED_UNICODE);
+        } catch (PDOException $e) {
+            http_response_code(409);
+            echo json_encode(["message" => "Bạn đã đánh giá sản phẩm này rồi"], JSON_UNESCAPED_UNICODE);
+        }
+        exit;
     }
 
     if ($method === "POST" && $path === "/api/orders") {
@@ -535,6 +626,52 @@ try {
             "message" => "Xác nhận đơn hàng thành công",
             "order_id" => $orderId,
             "status" => "confirmed",
+        ]);
+    }
+
+    if ($method === "PATCH" && preg_match("#^/api/seller/orders/(\\d+)/status$#", $path, $m)) {
+        $payload = require_seller($JWT_SECRET);
+        $sellerId = intval($payload["uid"]);
+        $orderId = intval($m[1]);
+        $body = read_json_body();
+        $newStatus = $body["status"] ?? "";
+
+        $allowed = ["confirmed", "shipping", "completed", "cancelled"];
+        if (!in_array($newStatus, $allowed, true)) {
+            fail("Trạng thái không hợp lệ", 422);
+        }
+
+        $check = db()->prepare("
+            SELECT o.id
+            FROM orders o
+            INNER JOIN order_items oi ON oi.order_id = o.id
+            WHERE o.id = :order_id
+              AND oi.seller_id = :seller_id
+            LIMIT 1
+        ");
+        $check->execute([
+            ":order_id" => $orderId,
+            ":seller_id" => $sellerId,
+        ]);
+
+        if (!$check->fetch()) {
+            fail("Không có quyền cập nhật đơn này", 403);
+        }
+
+        $update = db()->prepare("
+            UPDATE orders
+            SET status = :status
+            WHERE id = :order_id
+        ");
+        $update->execute([
+            ":status" => $newStatus,
+            ":order_id" => $orderId,
+        ]);
+
+        ok([
+            "message" => "Cập nhật trạng thái thành công",
+            "order_id" => $orderId,
+            "status" => $newStatus,
         ]);
     }
 

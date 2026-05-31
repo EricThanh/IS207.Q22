@@ -194,6 +194,12 @@
   box-shadow: 0 14px 28px rgba(244, 114, 168, 0.16);
 }
 
+.home__categoryCard--active {
+  background: var(--pink-light);
+  border-color: var(--pink-primary);
+  box-shadow: 0 14px 28px rgba(244, 114, 168, 0.18);
+}
+
 .home__categoryCard .ant-card-body {
   min-height: 102px;
   display: flex;
@@ -237,6 +243,50 @@
   justify-content: space-between;
   gap: 16px;
   margin-bottom: 20px;
+}
+
+.home__priceFilter {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 22px;
+  padding: 14px;
+  border: 1px solid var(--pink-border);
+  border-radius: 12px;
+  background: #ffffff;
+}
+
+.home__priceFilterLabel {
+  color: var(--text-dark);
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.home__priceInput {
+  width: 150px;
+}
+
+.home__priceInput .ant-input-number-input {
+  height: 38px;
+}
+
+.home__priceButton,
+.home__priceClearButton {
+  height: 40px;
+  border-radius: 999px;
+  padding-inline: 18px;
+  font-weight: 800;
+}
+
+.home__priceButton {
+  background: var(--pink-primary);
+  border-color: var(--pink-primary);
+}
+
+.home__priceButton:hover {
+  background: #ee5f9c !important;
+  border-color: #ee5f9c !important;
 }
 
 .home__title {
@@ -507,6 +557,17 @@
   .home__catalogHeader {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .home__priceFilter {
+    align-items: stretch;
+  }
+
+  .home__priceFilterLabel,
+  .home__priceInput,
+  .home__priceButton,
+  .home__priceClearButton {
+    width: 100%;
   }
 
   .home__newsletterForm {

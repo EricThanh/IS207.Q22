@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
-import { Card, Collapse, Empty, List, Space, Tag, Typography, message } from "antd";
+import { Button, Card, Collapse, Empty, Input, List, Modal, Rate, Space, Tag, Typography, message } from "antd";
+import { StarOutlined } from "@ant-design/icons";
 import { Link } from "react-router-dom";
+import { catalogApi } from "../api/catalogApi";
 import { orderApi } from "../api/orderApi";
 import "./BuyerOrders.css";
 
@@ -29,6 +31,10 @@ function getStatusMeta(status) {
 export default function BuyerOrders() {
     const [orders, setOrders] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [reviewModal, setReviewModal] = useState(null);
+    const [rating, setRating] = useState(0);
+    const [comment, setComment] = useState("");
+    const [submitting, setSubmitting] = useState(false);
 
     useEffect(() => {
         setLoading(true);
@@ -50,6 +56,30 @@ export default function BuyerOrders() {
             { totalOrders: 0, totalSpent: 0, completed: 0 }
         );
     }, [orders]);
+
+    async function handleSubmitReview() {
+        if (!rating) {
+            message.warning("Vui lòng chọn số sao");
+            return;
+        }
+        setSubmitting(true);
+        try {
+            await catalogApi.submitReview({
+                product_id: reviewModal.productId,
+                order_id: reviewModal.orderId,
+                rating,
+                comment,
+            });
+            message.success("Đánh giá thành công!");
+            setReviewModal(null);
+            setRating(0);
+            setComment("");
+        } catch (e) {
+            message.error(e?.response?.data?.message || "Lỗi khi gửi đánh giá");
+        } finally {
+            setSubmitting(false);
+        }
+    }
 
     const collapseItems = orders.map((order) => {
         const statusMeta = getStatusMeta(order.status);
@@ -112,7 +142,24 @@ export default function BuyerOrders() {
                                         </Space>
                                     </div>
                                 </div>
-                                <Text strong>{formatVnd(item.subtotal)}</Text>
+                                <Space>
+                                    <Text strong>{formatVnd(item.subtotal)}</Text>
+                                    {order.status === "completed" && (
+                                        <Button
+                                            size="small"
+                                            icon={<StarOutlined />}
+                                            onClick={() =>
+                                                setReviewModal({
+                                                    orderId: order.id,
+                                                    productId: item.product_id,
+                                                    productName: item.product_name,
+                                                })
+                                            }
+                                        >
+                                            Đánh giá
+                                        </Button>
+                                    )}
+                                </Space>
                             </List.Item>
                         )}
                     />
@@ -154,6 +201,37 @@ export default function BuyerOrders() {
                     <Empty description="Bạn chưa có đơn hàng nào" />
                 )}
             </Card>
+
+            <Modal
+                title={`Đánh giá: ${reviewModal?.productName || ""}`}
+                open={!!reviewModal}
+                onCancel={() => {
+                    setReviewModal(null);
+                    setRating(0);
+                    setComment("");
+                }}
+                footer={null}
+                destroyOnClose
+            >
+                <div style={{ textAlign: "center", margin: "16px 0" }}>
+                    <Rate value={rating} onChange={setRating} />
+                </div>
+                <Input.TextArea
+                    rows={3}
+                    placeholder="Nhận xét của bạn (tuỳ chọn)..."
+                    value={comment}
+                    onChange={(e) => setComment(e.target.value)}
+                    style={{ marginBottom: 12 }}
+                />
+                <Button
+                    type="primary"
+                    block
+                    loading={submitting}
+                    onClick={handleSubmitReview}
+                >
+                    Gửi đánh giá
+                </Button>
+            </Modal>
         </div>
     );
 }

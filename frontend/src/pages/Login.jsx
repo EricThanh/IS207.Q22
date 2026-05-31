@@ -81,7 +81,7 @@ export default function Login() {
                     </div>
 
                     <Button type="primary" htmlType="submit" block>
-                        Sign In
+                        Đăng nhập
                     </Button>
                 </Form>
 

@@ -4,6 +4,7 @@ import {
     Card,
     Col,
     Input,
+    InputNumber,
     Row,
     Spin,
     Typography,
@@ -32,13 +33,13 @@ const heroSlides = [
 ];
 
 const fallbackCategories = [
-    "Roses",
-    "Tulips",
-    "Lilies",
-    "Orchids",
-    "Bouquets",
-    "Wedding Flowers",
-    "Sympathy Flowers",
+    { id: 0, name: "Roses" },
+    { id: 0, name: "Tulips" },
+    { id: 0, name: "Lilies" },
+    { id: 0, name: "Orchids" },
+    { id: 0, name: "Bouquets" },
+    { id: 0, name: "Wedding Flowers" },
+    { id: 0, name: "Sympathy Flowers" },
 ];
 
 function formatVnd(value) {
@@ -51,15 +52,40 @@ export default function Home() {
     const [products, setProducts] = useState([]);
     const [categoryId, setCategoryId] = useState(0);
     const [search, setSearch] = useState("");
+    const [minPrice, setMinPrice] = useState(null);
+    const [maxPrice, setMaxPrice] = useState(null);
     const [loading, setLoading] = useState(false);
 
     const displayCategories = useMemo(() => {
         if (categories.length > 0) {
-            return categories.map((category) => category.name);
+            return categories;
         }
 
         return fallbackCategories;
     }, [categories]);
+
+    const selectedCategory = useMemo(() => {
+        return categories.find((category) => Number(category.id) === Number(categoryId));
+    }, [categories, categoryId]);
+
+    const filteredProducts = useMemo(() => {
+        const normalizedMinPrice = Number(minPrice) || 0;
+        const normalizedMaxPrice = Number(maxPrice) || 0;
+
+        return products.filter((product) => {
+            const productPrice = Number(product.price) || 0;
+
+            if (normalizedMinPrice > 0 && productPrice < normalizedMinPrice) {
+                return false;
+            }
+
+            if (normalizedMaxPrice > 0 && productPrice > normalizedMaxPrice) {
+                return false;
+            }
+
+            return true;
+        });
+    }, [products, minPrice, maxPrice]);
 
     async function loadCategories() {
         try {
@@ -73,6 +99,8 @@ export default function Home() {
     async function loadProducts(next = {}) {
         const nextCategoryId = next.categoryId ?? categoryId;
         const nextSearch = next.search ?? search;
+        const nextMinPrice = next.minPrice ?? minPrice;
+        const nextMaxPrice = next.maxPrice ?? maxPrice;
 
         setLoading(true);
 
@@ -81,6 +109,8 @@ export default function Home() {
                 category_id: nextCategoryId > 0 ? nextCategoryId : undefined,
                 search:
                     nextSearch && nextSearch.trim() !== "" ? nextSearch : undefined,
+                min_price: nextMinPrice && nextMinPrice > 0 ? nextMinPrice : undefined,
+                max_price: nextMaxPrice && nextMaxPrice > 0 ? nextMaxPrice : undefined,
             });
 
             setProducts(res.data.data || []);
@@ -89,6 +119,37 @@ export default function Home() {
         } finally {
             setLoading(false);
         }
+    }
+
+    function handleCategoryClick(category) {
+        if (!category.id) {
+            return;
+        }
+
+        setCategoryId(category.id);
+        setSearch("");
+        loadProducts({
+            categoryId: category.id,
+            search: "",
+        });
+    }
+
+    function handleApplyPriceFilter() {
+        if (minPrice && maxPrice && minPrice > maxPrice) {
+            message.warning("Giá thấp nhất không được lớn hơn giá cao nhất");
+            return;
+        }
+
+        loadProducts();
+    }
+
+    function handleClearPriceFilter() {
+        setMinPrice(null);
+        setMaxPrice(null);
+        loadProducts({
+            minPrice: null,
+            maxPrice: null,
+        });
     }
 
     useEffect(() => {
@@ -103,6 +164,8 @@ export default function Home() {
         loadProducts({
             categoryId: 0,
             search: keyword,
+            minPrice,
+            maxPrice,
         });
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [searchParams]);
@@ -178,10 +241,19 @@ export default function Home() {
                 </Title>
 
                 <div className="home__categoryGrid">
-                    {displayCategories.map((name) => (
-                        <Card key={name} hoverable className="home__categoryCard">
+                    {displayCategories.map((category) => (
+                        <Card
+                            key={`${category.id}-${category.name}`}
+                            hoverable
+                            className={`home__categoryCard ${
+                                Number(category.id) === Number(categoryId)
+                                    ? "home__categoryCard--active"
+                                    : ""
+                            }`}
+                            onClick={() => handleCategoryClick(category)}
+                        >
                             <span className="home__categoryIcon">🌸</span>
-                            <Text className="home__categoryName">{name}</Text>
+                            <Text className="home__categoryName">{category.name}</Text>
                         </Card>
                     ))}
                 </div>
@@ -190,9 +262,45 @@ export default function Home() {
             <section className="home__productsSection">
                 <div className="home__catalogHeader">
                     <Title level={3} className="home__title">
-                        Danh sách hoa nổi bật
+                        {selectedCategory
+                            ? `Danh sách ${selectedCategory.name}`
+                            : "Danh sách hoa nổi bật"}
                     </Title>
-                    <Text className="home__resultCount">{products.length} kết quả</Text>
+                    <Text className="home__resultCount">{filteredProducts.length} kết quả</Text>
+                </div>
+
+                <div className="home__priceFilter">
+                    <Text className="home__priceFilterLabel">Lọc theo giá</Text>
+                    <InputNumber
+                        className="home__priceInput"
+                        min={0}
+                        step={10000}
+                        value={minPrice}
+                        formatter={(value) =>
+                            value ? `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ".") : ""
+                        }
+                        parser={(value) => Number(value?.replace(/\./g, "") || 0)}
+                        placeholder="Từ"
+                        onChange={setMinPrice}
+                    />
+                    <InputNumber
+                        className="home__priceInput"
+                        min={0}
+                        step={10000}
+                        value={maxPrice}
+                        formatter={(value) =>
+                            value ? `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ".") : ""
+                        }
+                        parser={(value) => Number(value?.replace(/\./g, "") || 0)}
+                        placeholder="Đến"
+                        onChange={setMaxPrice}
+                    />
+                    <Button type="primary" className="home__priceButton" onClick={handleApplyPriceFilter}>
+                        Lọc
+                    </Button>
+                    <Button className="home__priceClearButton" onClick={handleClearPriceFilter}>
+                        Xóa lọc
+                    </Button>
                 </div>
 
                 {loading && (
@@ -203,7 +311,7 @@ export default function Home() {
                 )}
 
                 <Row gutter={[18, 18]}>
-                    {products.map((product) => {
+                    {filteredProducts.map((product) => {
                         const hasDiscount = Number(product.discount_percent) > 0;
                         const hasStock = Number(product.stock) > 0;
 
@@ -258,12 +366,12 @@ export default function Home() {
                                                     hasStock ? "" : "home__stockPill--empty"
                                                 }`}
                                             >
-                                                {hasStock ? "In Stock" : "Hết hàng"}
+                                                {hasStock ? "Còn hàng" : "Hết hàng"}
                                             </span>
                                         </div>
 
                                         <div className="home__productActions">
-                                            <span className="home__detailsButton">View Details</span>
+                                            <span className="home__detailsButton">Xem chi tiết</span>
                                             <span className="home__cartButton" aria-hidden="true">
                                                 <ShoppingCartOutlined />
                                             </span>

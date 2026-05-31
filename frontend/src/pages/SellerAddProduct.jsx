@@ -268,15 +268,19 @@ export default function SellerAddProduct() {
         }
     }
 
-    async function confirmOrder(orderId) {
+    async function updateOrderStatus(orderId, newStatus) {
         setConfirmingOrderId(orderId);
         try {
-            await orderApi.confirmSellerOrder(orderId);
-            message.success(`Đã xác nhận đơn #${orderId}`);
+            if (newStatus === "confirmed") {
+                await orderApi.confirmSellerOrder(orderId);
+            } else {
+                await orderApi.updateSellerOrderStatus(orderId, newStatus);
+            }
+            message.success(`Cập nhật đơn #${orderId} thành công`);
             loadOrders();
             loadStats(selectedDays);
         } catch (e) {
-            message.error(e?.response?.data?.message || "Xác nhận đơn hàng thất bại");
+            message.error(e?.response?.data?.message || "Cập nhật thất bại");
         } finally {
             setConfirmingOrderId(null);
         }
@@ -426,16 +430,27 @@ export default function SellerAddProduct() {
             title: "Thao tác",
             key: "actions",
             width: 160,
-            render: (_, order) => (
-                <Button
-                    type="primary"
-                    disabled={order.status !== "pending"}
-                    loading={confirmingOrderId === order.id}
-                    onClick={() => confirmOrder(order.id)}
-                >
-                    Xác nhận đơn
-                </Button>
-            ),
+            render: (_, order) => {
+                const nextAction = {
+                    pending: { label: "Xác nhận đơn", nextStatus: "confirmed" },
+                    confirmed: { label: "Bắt đầu giao", nextStatus: "shipping" },
+                    shipping: { label: "Hoàn thành", nextStatus: "completed" },
+                }[order.status];
+
+                if (!nextAction) {
+                    return <Tag color="default">{getStatusLabel(order.status)}</Tag>;
+                }
+
+                return (
+                    <Button
+                        type="primary"
+                        loading={confirmingOrderId === order.id}
+                        onClick={() => updateOrderStatus(order.id, nextAction.nextStatus)}
+                    >
+                        {nextAction.label}
+                    </Button>
+                );
+            },
         },
     ];
 

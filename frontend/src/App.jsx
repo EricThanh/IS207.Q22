@@ -63,7 +63,7 @@ export default function App() {
             )}
             {isLoggedIn && user?.role === "seller" && (
               <Link to="/seller/products/new" className="app__navLink">
-                Kênh người bán
+                Kênh bán hàng
               </Link>
             )}
           </nav>

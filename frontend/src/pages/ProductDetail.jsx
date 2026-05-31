@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { Button, Spin, Typography, message } from "antd";
-import { HeartOutlined, ShoppingCartOutlined } from "@ant-design/icons";
+import { Avatar, Button, Divider, Empty, List, Rate, Spin, Typography, message } from "antd";
+import { HeartOutlined, ShoppingCartOutlined, UserOutlined } from "@ant-design/icons";
 import { axiosClient } from "../api/axiosClient";
+import { catalogApi } from "../api/catalogApi";
 import { useCart } from "../store/CartContext";
 import "./ProductDetail.css";
 
@@ -17,16 +18,31 @@ export default function ProductDetail() {
     const [product, setProduct] = useState(null);
     const [loading, setLoading] = useState(true);
     const [qty, setQty] = useState(1);
+    const [reviews, setReviews] = useState([]);
+    const [avgRating, setAvgRating] = useState(null);
+    const [reviewCount, setReviewCount] = useState(0);
     const { addItem } = useCart();
 
     useEffect(() => {
         setLoading(true);
         setQty(1);
+        setReviews([]);
+        setAvgRating(null);
+        setReviewCount(0);
         axiosClient
             .get(`/api/products/${id}`)
             .then((res) => setProduct(res.data.data))
             .catch(() => message.error("Khong tai duoc san pham"))
             .finally(() => setLoading(false));
+
+        catalogApi
+            .getReviews(id)
+            .then((res) => {
+                setReviews(res.data.data || []);
+                setAvgRating(res.data.avg_rating);
+                setReviewCount(res.data.total || 0);
+            })
+            .catch(() => {});
     }, [id]);
 
     if (loading) {
@@ -106,7 +122,7 @@ export default function ProductDetail() {
                     </Paragraph>
 
                     <div className="pd__quantityRow">
-                        <span className="pd__label">Quantity:</span>
+                        <span className="pd__label">Số lượng:</span>
                         <div className="pd__quantityControl">
                             <button
                                 type="button"
@@ -131,12 +147,12 @@ export default function ProductDetail() {
                     </div>
 
                     <div className="pd__statusRow">
-                        <span className="pd__label">Status:</span>
+                        <span className="pd__label">Trạng thái:</span>
                         <span
                             className={`pd__status ${isOutOfStock ? "pd__status--out" : "pd__status--in"
                                 }`}
                         >
-                            {isOutOfStock ? "Hết hàng" : "In Stock"}
+                            {isOutOfStock ? "Hết hàng" : "Còn hàng"}
                         </span>
                     </div>
 
@@ -153,6 +169,60 @@ export default function ProductDetail() {
                         Thêm vào giỏ hàng
                     </Button>
                 </div>
+            </div>
+
+            <Divider className="pd__reviewDivider" />
+
+            <div className="pd__reviews">
+                <Title level={4} className="pd__reviewsTitle">
+                    Đánh giá sản phẩm
+                    {avgRating !== null && (
+                        <span className="pd__reviewsSummary">
+                            <Rate disabled allowHalf value={avgRating} className="pd__summaryRate" />
+                            <Text type="secondary" className="pd__summaryText">
+                                {avgRating}/5 · {reviewCount} đánh giá
+                            </Text>
+                        </span>
+                    )}
+                </Title>
+
+                {reviews.length === 0 ? (
+                    <Empty description="Chưa có đánh giá nào" />
+                ) : (
+                    <List
+                        itemLayout="horizontal"
+                        dataSource={reviews}
+                        renderItem={(review) => (
+                            <List.Item>
+                                <List.Item.Meta
+                                    avatar={<Avatar icon={<UserOutlined />} />}
+                                    title={
+                                        <span className="pd__reviewHeader">
+                                            <Text strong>{review.full_name}</Text>
+                                            <Rate
+                                                disabled
+                                                value={Number(review.rating)}
+                                                className="pd__reviewRate"
+                                            />
+                                        </span>
+                                    }
+                                    description={
+                                        <>
+                                            {review.comment && (
+                                                <div className="pd__reviewComment">
+                                                    {review.comment}
+                                                </div>
+                                            )}
+                                            <Text type="secondary" className="pd__reviewDate">
+                                                {new Date(review.created_at).toLocaleDateString("vi-VN")}
+                                            </Text>
+                                        </>
+                                    }
+                                />
+                            </List.Item>
+                        )}
+                    />
+                )}
             </div>
         </div>
     );

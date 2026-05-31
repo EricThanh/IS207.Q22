@@ -13,4 +13,7 @@ export const orderApi = {
   confirmSellerOrder(orderId) {
     return axiosClient.put(`/api/seller/orders/${orderId}/confirm`);
   },
+  updateSellerOrderStatus(orderId, status) {
+    return axiosClient.patch(`/api/seller/orders/${orderId}/status`, { status });
+  },
 };
