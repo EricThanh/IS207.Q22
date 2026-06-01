@@ -33,7 +33,7 @@
   border-radius: 16px;
   display: grid;
   place-items: center;
-  background: linear-gradient(135deg, #d94f70 0%, #8f1d48 100%);
+  /* background: linear-gradient(135deg, #d94f70 0%, #8f1d48 100%); */
   color: #fff;
   font-size: 22px;
   font-weight: 800;

@@ -5,10 +5,10 @@ export default function FooterBar() {
         <footer className="footerbar">
             <div className="footerbar__inner">
                 <div className="footerbar__brand">
-                    <span className="footerbar__mark">F</span>
+                    <span className="footerbar__mark">🌸</span>
                     <div className="footerbar__brandText">
-                        <strong>Flower Shop</strong>
-                        <span>Hoa dep cho sinh nhat, ky niem va nhung ngay can mot chut diu dang.</span>
+                        <strong>Blosoom Shop</strong>
+                        {/* <span>Hoa dep cho sinh nhat, ky niem va nhung ngay can mot chut diu dang.</span> */}
                     </div>
                 </div>
 
@@ -19,7 +19,7 @@ export default function FooterBar() {
                         target="_blank"
                         rel="noreferrer"
                     >
-                        <span className="footerbar__icon">f</span>
+                        <span className="footerbar__icon">F</span>
                         <span className="footerbar__text">Chat Facebook</span>
                     </a>
 

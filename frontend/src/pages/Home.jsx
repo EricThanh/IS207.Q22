@@ -269,7 +269,7 @@ export default function Home() {
                     <Text className="home__resultCount">{filteredProducts.length} kết quả</Text>
                 </div>
 
-                <div className="home__priceFilter">
+                {/* <div className="home__priceFilter">
                     <Text className="home__priceFilterLabel">Lọc theo giá</Text>
                     <InputNumber
                         className="home__priceInput"
@@ -301,7 +301,7 @@ export default function Home() {
                     <Button className="home__priceClearButton" onClick={handleClearPriceFilter}>
                         Xóa lọc
                     </Button>
-                </div>
+                </div> */}
 
                 {loading && (
                     <div className="home__loading">

@@ -18,6 +18,7 @@ import RequireRole from "./routes/RequireRole";
 import SellerAddProduct from "./pages/SellerAddProduct";
 import FooterBar from "./components/FooterBar";
 import BuyerOrders from "./pages/BuyerOrders";
+import Shop from "./pages/Shop";
 
 const { Header, Content } = Layout;
 
@@ -55,6 +56,9 @@ export default function App() {
           <nav className="app__nav" aria-label="Main navigation">
             <Link to="/" className="app__navLink">
               Trang chủ
+            </Link>
+            <Link to="/shop" className="app__navLink">
+              Cửa hàng
             </Link>
             {isLoggedIn && user?.role === "buyer" && (
               <Link to="/my-orders" className="app__navLink">
@@ -111,6 +115,7 @@ export default function App() {
       <Content className="app__content">
         <Routes>
           <Route path="/" element={<Home />} />
+          <Route path="/shop" element={<Shop />} />
           <Route path="/product/:id" element={<ProductDetail />} />
           <Route path="/cart" element={<Cart />} />
           <Route
